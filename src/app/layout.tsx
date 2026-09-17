@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import WhatsAppButton from '@/components/common/WhatsAppButton';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import AppBottomPadding from '@/components/layout/AppBottomPadding';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -42,9 +43,10 @@ export default function RootLayout({
       <body className="flex flex-col min-h-screen">
         <CartProvider>
           <Header />
-          <main className="flex-1 pb-16 lg:pb-0">{children}</main>
+          <main className="flex-1">{children}</main>
           <WhatsAppButton />
           <Footer />
+          <AppBottomPadding />
           <MobileBottomNav />
         </CartProvider>
       </body>

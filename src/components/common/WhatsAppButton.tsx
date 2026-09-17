@@ -4,7 +4,10 @@ import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { generateWhatsAppLink } from '@/lib/utils';
 
+import { useAppMode } from '@/lib/use-app-mode';
+
 export default function WhatsAppButton() {
+  const { isApp } = useAppMode();
   const whatsappLink = generateWhatsAppLink(
     '919876543210',
     'Hello Feather Haven, I am browsing your online bird store and need assistance.'
@@ -15,7 +18,9 @@ export default function WhatsAppButton() {
       href={whatsappLink}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-20 lg:bottom-6 left-5 z-40 bg-emerald-600 hover:bg-emerald-500 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center space-x-2 group border-2 border-white/20"
+      className={`fixed ${
+        isApp ? 'bottom-20' : 'bottom-6'
+      } left-5 z-40 bg-emerald-600 hover:bg-emerald-500 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center space-x-2 group border-2 border-white/20`}
       title="Chat with us on WhatsApp"
     >
       <MessageCircle className="w-6 h-6 fill-white text-emerald-600" />

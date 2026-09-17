@@ -86,17 +86,6 @@ export default function AdminSidebar() {
       {/* Footer link back to website */}
       <div className="pt-5 mt-5 border-t border-slate-800 space-y-2">
         <Link
-          href="/customizer"
-          target="_blank"
-          className="flex items-center justify-between px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 rounded-xl border border-amber-500/30 transition-colors"
-        >
-          <span className="flex items-center space-x-2">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Open Customizer</span>
-          </span>
-          <ExternalLink className="w-3 h-3 text-amber-400" />
-        </Link>
-        <Link
           href="/"
           target="_blank"
           className="flex items-center justify-between px-3.5 py-2 bg-slate-800/80 hover:bg-slate-800 text-xs font-medium text-slate-300 rounded-xl transition-colors"

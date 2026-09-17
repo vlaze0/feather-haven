@@ -4,8 +4,16 @@ import React from 'react';
 import Link from 'next/link';
 import { Bird, Phone, Mail, MapPin, Heart, ShieldCheck, Truck, RefreshCw, MessageSquare } from 'lucide-react';
 import { generateWhatsAppLink } from '@/lib/utils';
+import { useAppMode } from '@/lib/use-app-mode';
 
 export default function Footer() {
+  const { isApp } = useAppMode();
+
+  // Hide footer in app mode — app uses bottom navigation instead
+  if (isApp) {
+    return null;
+  }
+
   const whatsappUrl = generateWhatsAppLink(
     '919876543210',
     'Hello Feather Haven, I am visiting your website and have a question.'

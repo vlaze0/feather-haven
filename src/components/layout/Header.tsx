@@ -11,14 +11,15 @@ import {
   Search,
   Menu,
   X,
-  Sparkles,
   ChevronDown,
   LogOut,
   PackageCheck,
   Settings,
   LayoutDashboard,
+  ArrowLeft,
 } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
+import { useAppMode } from '@/lib/use-app-mode';
 import { UserSession } from '@/types';
 import DashboardIcon from '@/components/ui/DashboardIcon';
 
@@ -26,6 +27,7 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { cart, wishlist } = useCart();
+  const { isApp, isLoaded } = useAppMode();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -75,13 +77,193 @@ export default function Header() {
     router.refresh();
   };
 
+  // Get page title for app mode header
+  const getPageTitle = () => {
+    if (pathname === '/') return 'FeatherHaven';
+    if (pathname.startsWith('/birds')) return 'Birds';
+    if (pathname.startsWith('/food')) return 'Bird Food';
+    if (pathname.startsWith('/accessories') || pathname.startsWith('/cages')) return 'Accessories';
+    if (pathname.startsWith('/cart')) return 'Cart';
+    if (pathname.startsWith('/wishlist')) return 'Wishlist';
+    if (pathname.startsWith('/account')) return 'My Account';
+    if (pathname.startsWith('/admin')) return 'Dashboard';
+    if (pathname.startsWith('/about')) return 'About Us';
+    if (pathname.startsWith('/contact')) return 'Contact';
+    if (pathname.startsWith('/login')) return 'Sign In';
+    if (pathname.startsWith('/register')) return 'Register';
+    if (pathname.startsWith('/checkout')) return 'Checkout';
+    return 'FeatherHaven';
+  };
+
+  const isHomePage = pathname === '/';
+
+  // ─── APP MODE: Compact native-style app bar ───
+  if (isApp && isLoaded) {
+    return (
+      <>
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200 safe-area-pt">
+          <div className="flex items-center justify-between px-4 py-3">
+            {/* Left: Back button or Logo */}
+            {isHomePage ? (
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md">
+                  <Bird className="w-5 h-5" />
+                </div>
+                <span className="text-lg font-extrabold text-slate-900 tracking-tight">
+                  Feather<span className="text-emerald-600">Haven</span>
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => router.back()}
+                  className="p-1.5 -ml-1 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-base font-bold text-slate-900">{getPageTitle()}</h1>
+              </div>
+            )}
+
+            {/* Right: Key actions */}
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+
+              <Link
+                href="/cart"
+                className="relative p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {totalCartCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 bg-emerald-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {totalCartCount > 99 ? '99+' : totalCartCount}
+                  </span>
+                )}
+              </Link>
+
+              {user ? (
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
+                >
+                  <UserIcon className="w-5 h-5" />
+                </button>
+              ) : (
+                <Link href="/login" className="p-2 text-emerald-600 rounded-lg">
+                  <UserIcon className="w-5 h-5" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* User dropdown in app mode */}
+          {userMenuOpen && user && (
+            <div className="absolute right-4 top-14 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
+              <div className="px-4 py-2 border-b border-slate-100">
+                <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+              </div>
+              <Link
+                href="/account"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center space-x-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                <PackageCheck className="w-4 h-4 text-slate-400" />
+                <span>My Orders</span>
+              </Link>
+              {user.role === 'ADMIN' && (
+                <Link
+                  href="/admin"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center space-x-2 px-4 py-2 text-xs text-emerald-700 hover:bg-emerald-50 font-bold"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-emerald-600" />
+                  <span>Admin Dashboard</span>
+                </Link>
+              )}
+              <div className="border-t border-slate-100 mt-1 pt-1">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left flex items-center space-x-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </header>
+
+        {/* Search Modal (shared between modes) */}
+        {searchOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-20 px-4">
+            <div className="bg-white rounded-3xl w-full max-w-xl p-6 shadow-2xl animate-in zoom-in-95">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+                  <Search className="w-5 h-5 text-emerald-600" />
+                  <span>Search</span>
+                </h3>
+                <button onClick={() => setSearchOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSearchSubmit} className="mt-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search birds, food, accessories..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-4 pr-12 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-2 bottom-2 bg-emerald-600 text-white px-4 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors"
+                  >
+                    Search
+                  </button>
+                </div>
+              </form>
+              <div className="mt-4">
+                <p className="text-xs text-slate-400 font-semibold mb-2">Popular:</p>
+                <div className="flex flex-wrap gap-2">
+                  {['Sky Blue Budgie', 'Lutino Parakeet', 'Bird Cage', 'Cuttlefish Bone', 'Lovebird'].map(
+                    (term) => (
+                      <button
+                        key={term}
+                        onClick={() => {
+                          setSearchQuery(term);
+                          router.push(`/birds?search=${encodeURIComponent(term)}`);
+                          setSearchOpen(false);
+                        }}
+                        className="bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 px-3 py-1 rounded-xl text-xs font-medium transition-colors"
+                      >
+                        {term}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // ─── WEBSITE MODE: Full traditional header ───
   return (
     <>
       {/* 1. Top Announcement Bar */}
       <div className="bg-slate-900 text-white text-xs py-2.5 px-4 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-center">
           <div className="flex items-center space-x-2 text-emerald-400 font-medium truncate">
-            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
             <span>🎉 Free Delivery on Orders Above ₹1,999! Use coupon <strong className="text-yellow-300">WELCOME10</strong> for 10% OFF</span>
           </div>
         </div>
@@ -111,7 +293,7 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
+          {/* Desktop Navigation Links — NO Customizer */}
           <nav className="hidden lg:flex items-center space-x-1">
             <Link
               href="/"
@@ -155,20 +337,6 @@ export default function Header() {
               }`}
             >
               Accessories & Cages
-            </Link>
-            <Link
-              href="/customizer"
-              className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                pathname.startsWith('/customizer')
-                  ? 'bg-amber-50 text-amber-800 font-bold'
-                  : 'text-slate-700 hover:text-amber-600 hover:bg-slate-50'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin-slow" />
-              <span>Customizer</span>
-              <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full font-extrabold uppercase">
-                App
-              </span>
             </Link>
             <Link
               href="/about"
@@ -326,7 +494,7 @@ export default function Header() {
         </div>
       </header>
 
-      {/* 3. Mobile Navigation Drawer */}
+      {/* 3. Mobile Navigation Drawer — NO Customizer */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex justify-end">
           <div className="w-4/5 max-w-sm bg-white h-full p-6 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right">
@@ -372,19 +540,6 @@ export default function Header() {
                   className="block px-4 py-2.5 text-sm font-semibold text-slate-800 rounded-xl hover:bg-slate-50"
                 >
                   Accessories & Cages
-                </Link>
-                <Link
-                  href="/customizer"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between px-4 py-2.5 text-sm font-extrabold text-amber-900 bg-amber-50/80 border border-amber-200/60 rounded-xl"
-                >
-                  <span className="flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-                    <span>Customizer Studio</span>
-                  </span>
-                  <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase">
-                    Build
-                  </span>
                 </Link>
                 <Link
                   href="/about"
@@ -496,3 +651,4 @@ export default function Header() {
     </>
   );
 }
+
