@@ -35,65 +35,74 @@ export default async function HomePage({
   const statusParam = searchParams?.status;
   const sortParam = searchParams?.sort;
 
-  // Fetch Site Settings
-  const settingsRecords = await prisma.siteSetting.findMany();
+  // Fetch Site Settings safely
   const settingsMap: Record<string, string> = {};
-  settingsRecords.forEach((s) => {
-    settingsMap[s.key] = s.value;
-  });
+  let featuredBirds: any[] = [];
+  let featuredProducts: any[] = [];
+  let blogPosts: any[] = [];
+  let reviews: any[] = [];
+
+  try {
+    const settingsRecords = await prisma.siteSetting.findMany();
+    settingsRecords.forEach((s) => {
+      settingsMap[s.key] = s.value;
+    });
+
+    // Build query for Homepage Birds
+    const birdWhere: any = {};
+    if (speciesParam && speciesParam !== 'ALL') {
+      birdWhere.species = { contains: speciesParam };
+    }
+    if (varietyParam && varietyParam !== 'ALL') {
+      birdWhere.variety = { contains: varietyParam };
+    }
+    if (statusParam && statusParam !== 'ALL') {
+      birdWhere.status = statusParam;
+    }
+
+    // Fetch Birds
+    const featuredBirdsRaw = await prisma.bird.findMany({
+      where: birdWhere,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    featuredBirds = featuredBirdsRaw.map((b) => ({
+      ...b,
+      createdAt: b.createdAt.toISOString(),
+    }));
+
+    // Fetch Featured Products (Limit 8)
+    const featuredProductsRaw = await prisma.product.findMany({
+      where: { isFeatured: true },
+      include: { category: true, images: true },
+      take: 8,
+    });
+
+    featuredProducts = featuredProductsRaw.map((p) => ({
+      ...p,
+      createdAt: p.createdAt.toISOString(),
+    }));
+
+    // Fetch Blog Posts
+    blogPosts = await prisma.blogPost.findMany({
+      take: 3,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Fetch Customer Reviews
+    reviews = await prisma.review.findMany({
+      where: { isApproved: true },
+      take: 3,
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    console.error('Error fetching homepage data from database:', error);
+  }
 
   const heroTitle = settingsMap.hero_title || 'Find Your Perfect Feathered Companion';
   const heroSubtitle =
     settingsMap.hero_subtitle ||
     'Healthy, hand-reared Budgies (all 23 varieties including Hagoromo Helicopter), Lovebirds, Cockatiels, Sun Conures & Finches, non-toxic cages, and gourmet food delivered safely to your doorstep.';
-
-  // Build query for Homepage Birds
-  const birdWhere: any = {};
-  if (speciesParam && speciesParam !== 'ALL') {
-    birdWhere.species = { contains: speciesParam };
-  }
-  if (varietyParam && varietyParam !== 'ALL') {
-    birdWhere.variety = { contains: varietyParam };
-  }
-  if (statusParam && statusParam !== 'ALL') {
-    birdWhere.status = statusParam;
-  }
-
-  // Fetch Birds
-  const featuredBirdsRaw = await prisma.bird.findMany({
-    where: birdWhere,
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const featuredBirds = featuredBirdsRaw.map((b) => ({
-    ...b,
-    createdAt: b.createdAt.toISOString(),
-  }));
-
-  // Fetch Featured Products (Limit 8)
-  const featuredProductsRaw = await prisma.product.findMany({
-    where: { isFeatured: true },
-    include: { category: true, images: true },
-    take: 8,
-  });
-
-  const featuredProducts = featuredProductsRaw.map((p) => ({
-    ...p,
-    createdAt: p.createdAt.toISOString(),
-  }));
-
-  // Fetch Blog Posts
-  const blogPosts = await prisma.blogPost.findMany({
-    take: 3,
-    orderBy: { createdAt: 'desc' },
-  });
-
-  // Fetch Customer Reviews
-  const reviews = await prisma.review.findMany({
-    where: { isApproved: true },
-    take: 3,
-    orderBy: { createdAt: 'desc' },
-  });
 
   const speciesList = [
     { name: 'ALL', label: 'All Birds', icon: '🦜' },
