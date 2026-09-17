@@ -76,7 +76,7 @@ export default function BirdCard({ bird }: { bird: BirdItem }) {
             src={firstImage}
             alt={bird.name}
             fill
-            unoptimized
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover object-[center_15%] group-hover:scale-105 transition-transform duration-500"
           />
 
