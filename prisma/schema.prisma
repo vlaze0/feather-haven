@@ -1,0 +1,232 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         String         @default("CUSTOMER") // ADMIN or CUSTOMER
+  phone        String?
+  addresses    Address[]
+  orders       Order[]
+  reviews      Review[]
+  cartItems    CartItem[]
+  wishlist     WishlistItem[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  street    String
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  image       String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Bird {
+  id                 String         @id @default(uuid())
+  birdCode           String         @unique
+  name               String
+  slug               String         @unique
+  species            String         // Budgerigar / Parakeet, Lovebird, Cockatiel, Sun Conure, Finch
+  variety            String?        // Normal Green, Yellow-Face, Clearwing, Lutino, Albino, Opaline, Spangle, Pied, Cinnamon, Crested, English, Rainbow
+  color              String
+  age                String
+  gender             String         // Male, Female, Pair, Unknown
+  price              Float
+  status             String         @default("AVAILABLE") // AVAILABLE, RESERVED, SOLD, COMING_SOON
+  healthStatus       String         @default("Healthy & Active")
+  healthInfo         String?
+  careLevel          String         @default("Beginner Friendly")
+  dietRecommendation String?
+  temperament        String?
+  description        String
+  images             String         // JSON string array of image URLs
+  isDeliveryAllowed  Boolean        @default(true)
+  orderItems         OrderItem[]
+  cartItems          CartItem[]
+  wishlistItems      WishlistItem[]
+  reviews            Review[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model Product {
+  id             String         @id @default(uuid())
+  name           String
+  slug           String         @unique
+  categoryId     String
+  category       Category       @relation(fields: [categoryId], references: [id])
+  brand          String?
+  suitableFor    String?        // e.g. Budgies & Parakeets
+  packageWeight  String?        // e.g. 500g, 1kg
+  ingredients    String?
+  dimensions     String?        // e.g. 18x18x24 inches
+  material       String?        // e.g. Wrought Iron, Non-toxic Plastic
+  price          Float
+  discountPrice  Float?
+  stock          Int            @default(10)
+  description    String
+  isFeatured     Boolean        @default(false)
+  images         ProductImage[]
+  orderItems     OrderItem[]
+  cartItems      CartItem[]
+  wishlistItems  WishlistItem[]
+  reviews        Review[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  isPrimary Boolean  @default(false)
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birdId    String?
+  bird      Bird?    @relation(fields: [birdId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birdId    String?
+  bird      Bird?    @relation(fields: [birdId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, birdId, productId])
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  orderNumber    String      @unique
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName   String
+  customerPhone  String
+  customerEmail  String
+  deliveryMethod String      @default("HOME_DELIVERY") // HOME_DELIVERY, STORE_PICKUP
+  address        String
+  city           String
+  state          String
+  pincode        String
+  subtotal       Float
+  discountAmount Float       @default(0)
+  deliveryCharge Float       @default(0)
+  totalAmount    Float
+  couponCode     String?
+  paymentMethod  String      @default("COD")
+  paymentStatus  String      @default("PENDING") // PENDING, PAID, FAILED
+  orderStatus    String      @default("PENDING") // PENDING, CONFIRMED, PREPARING, READY_FOR_PICKUP, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  notes          String?
+  orderItems     OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  birdId    String?
+  bird      Bird?    @relation(fields: [birdId], references: [id], onDelete: SetNull)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  title     String
+  price     Float
+  quantity  Int      @default(1)
+}
+
+model Coupon {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  type           String    @default("PERCENTAGE") // PERCENTAGE, FIXED
+  value          Float
+  minOrderAmount Float     @default(0)
+  maxDiscount    Float?
+  expiryDate     DateTime?
+  usageLimit     Int?
+  usedCount      Int       @default(0)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName String
+  rating       Int      @default(5)
+  comment      String
+  birdId       String?
+  bird         Bird?    @relation(fields: [birdId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model BlogPost {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique
+  category  String
+  excerpt   String
+  content   String
+  readTime  String   @default("4 min read")
+  image     String
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("UNREAD")
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
