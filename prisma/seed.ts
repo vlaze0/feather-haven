@@ -65,7 +65,7 @@ async function main() {
     { key: 'hero_subtitle', value: 'Healthy, hand-reared Budgies (23 varieties), Lovebirds (17 varieties), Cockatiels (5 varieties), Sun Conures (5 varieties) & Finches (3 varieties) with premium Pet Bar Barky cages, nest boxes, and gourmet seed mixes.' },
     { key: 'announcement_bar', value: '🎉 Free express delivery on orders over ₹1,999! Use coupon WELCOME10 for 10% OFF.' },
     { key: 'whatsapp_number', value: '919876543210' },
-    { key: 'store_address', value: 'Shop #14, Royal Palm Arcade, MG Road, Bengaluru, Karnataka 560001' },
+    { key: 'store_address', value: 'Jamalpur, Aligarh 202002' },
     { key: 'store_hours', value: 'Mon - Sun: 9:30 AM - 8:30 PM' },
   ];
 

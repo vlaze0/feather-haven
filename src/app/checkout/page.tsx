@@ -2,10 +2,30 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Truck, Store, CreditCard, Banknote, ArrowRight, Lock } from 'lucide-react';
+import {
+  ShieldCheck,
+  Truck,
+  Store,
+  CreditCard,
+  Banknote,
+  Lock,
+  CheckCircle2,
+  Copy,
+  ArrowLeft,
+  AlertCircle,
+} from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
 import { formatCurrency } from '@/lib/utils';
+
+// ─── Your UPI details — update these ───────────────────────────────────────
+const UPI_ID = 'your-upi@upi'; // ← Replace with your actual UPI ID
+const UPI_NAME = 'Feather Haven'; // ← Your name / shop name
+const QR_IMAGE_PATH = '/images/upi-qr.png'; // ← QR code image you'll upload to public/images/
+
+// ─── Steps ──────────────────────────────────────────────────────────────────
+type Step = 'form' | 'upi-payment' | 'upi-confirm';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -22,8 +42,10 @@ export default function CheckoutPage() {
     showToast,
   } = useCart();
 
+  const [step, setStep] = useState<Step>('form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Form Fields
   const [customerName, setCustomerName] = useState('');
@@ -33,7 +55,7 @@ export default function CheckoutPage() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('Karnataka');
   const [pincode, setPincode] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'RAZORPAY' | 'CARD'>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
   const [notes, setNotes] = useState('');
 
   if (cart.length === 0) {
@@ -53,11 +75,10 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  // ─── Place order in DB ──────────────────────────────────────────────────
+  const placeOrder = async (payStatus: 'PENDING' | 'PAID') => {
     setLoading(true);
-
+    setError(null);
     try {
       const orderItems = cart.map((item) => ({
         type: item.type,
@@ -82,6 +103,7 @@ export default function CheckoutPage() {
           pincode,
           couponCode: coupon?.code,
           paymentMethod,
+          paymentStatus: payStatus,
           notes,
           items: orderItems,
         }),
@@ -95,16 +117,156 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Success
       clearCart();
       showToast('Order placed successfully! 🕊️');
       router.push(`/order-success/${data.order.id}`);
-    } catch (err: any) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };
 
+  // ─── Form submit ─────────────────────────────────────────────────────────
+  const handleSubmitForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (paymentMethod === 'UPI') {
+      // Go to UPI QR step — don't place order yet
+      setStep('upi-payment');
+    } else {
+      // COD — place order immediately
+      placeOrder('PENDING');
+    }
+  };
+
+  // ─── Copy UPI ID ─────────────────────────────────────────────────────────
+  const handleCopyUPI = () => {
+    navigator.clipboard.writeText(UPI_ID).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // ─── UPI Payment Screen ──────────────────────────────────────────────────
+  if (step === 'upi-payment') {
+    return (
+      <div className="bg-slate-50 min-h-screen py-10">
+        <div className="max-w-md mx-auto px-4 space-y-6">
+          {/* Back */}
+          <button
+            onClick={() => setStep('form')}
+            className="flex items-center space-x-1 text-sm text-slate-600 hover:text-slate-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Details</span>
+          </button>
+
+          <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-5 text-center">
+            <div>
+              <span className="text-xs font-mono uppercase text-emerald-600 font-extrabold">Step 2 of 2</span>
+              <h2 className="text-xl font-black text-slate-900 mt-1">Complete UPI Payment</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Pay <span className="font-bold text-emerald-600">{formatCurrency(totalAmount)}</span> using any UPI app
+              </p>
+            </div>
+
+            {/* Amount box */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+              <p className="text-xs text-slate-500 mb-1">Total Amount to Pay</p>
+              <p className="text-3xl font-black text-emerald-600">{formatCurrency(totalAmount)}</p>
+            </div>
+
+            {/* QR Code */}
+            <div className="flex flex-col items-center space-y-3">
+              <div className="relative w-48 h-48 border-4 border-emerald-600 rounded-2xl overflow-hidden bg-white">
+                <Image
+                  src={QR_IMAGE_PATH}
+                  alt="UPI QR Code"
+                  fill
+                  className="object-contain p-1"
+                  onError={(e) => {
+                    // Show placeholder if QR not uploaded yet
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                {/* Fallback placeholder */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 text-xs font-medium p-3">
+                  <div className="w-12 h-12 bg-slate-200 rounded-lg mb-2 flex items-center justify-center">
+                    <CreditCard className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <span className="text-center text-[10px] leading-tight text-slate-400">
+                    QR Code will appear here once uploaded
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">Scan with GPay, PhonePe, Paytm or any UPI app</p>
+            </div>
+
+            {/* Or pay via UPI ID */}
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500 mb-2">Or pay directly to UPI ID</p>
+              <div className="flex items-center justify-center space-x-2 bg-slate-100 rounded-xl px-4 py-2.5">
+                <span className="font-mono font-bold text-slate-900 text-sm">{UPI_ID}</span>
+                <button
+                  onClick={handleCopyUPI}
+                  className="text-emerald-600 hover:text-emerald-700 transition-colors"
+                  title="Copy UPI ID"
+                >
+                  {copied ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {copied && (
+                <p className="text-xs text-emerald-600 font-medium mt-1">✓ Copied to clipboard!</p>
+              )}
+            </div>
+
+            {/* UPI deep link — opens GPay/PhonePe directly */}
+            <a
+              href={`upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${totalAmount}&cu=INR&tn=FeatherHaven-Order`}
+              className="block w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all"
+            >
+              Open UPI App to Pay
+            </a>
+
+            {/* Warning */}
+            <div className="flex items-start space-x-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-amber-800 font-medium">
+                Only tap "I Have Paid" after your payment is successfully completed. Orders without payment will be cancelled.
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+                {error}
+              </div>
+            )}
+
+            {/* Confirm payment button */}
+            <button
+              onClick={() => placeOrder('PAID')}
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center space-x-2 disabled:bg-slate-300"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{loading ? 'Confirming...' : 'I Have Paid — Confirm Order'}</span>
+            </button>
+
+            <p className="text-[10px] text-slate-400">
+              Paid to: <strong>{UPI_NAME}</strong> ({UPI_ID})
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Main Checkout Form ──────────────────────────────────────────────────
   return (
     <div className="bg-slate-50 min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -113,7 +275,7 @@ export default function CheckoutPage() {
           <p className="text-xs text-slate-500 mt-1">Complete your customer details and payment preference.</p>
         </div>
 
-        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <form onSubmit={handleSubmitForm} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Form Column */}
           <div className="lg:col-span-7 space-y-6">
             {/* 1. Fulfillment Mode */}
@@ -297,6 +459,15 @@ export default function CheckoutPage() {
                   </div>
                 </button>
               </div>
+
+              {paymentMethod === 'UPI' && (
+                <div className="flex items-start space-x-2 bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-blue-800 font-medium">
+                    After clicking "Proceed to Payment", you'll see our QR code. Scan & pay, then confirm your payment to complete the order.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -351,7 +522,13 @@ export default function CheckoutPage() {
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm py-4 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:bg-slate-300"
             >
               <Lock className="w-4 h-4" />
-              <span>{loading ? 'Processing Order...' : 'Confirm & Place Order'}</span>
+              <span>
+                {loading
+                  ? 'Processing...'
+                  : paymentMethod === 'UPI'
+                  ? 'Proceed to Payment →'
+                  : 'Confirm & Place Order'}
+              </span>
             </button>
 
             <div className="text-center text-[11px] text-slate-400 font-medium flex items-center justify-center space-x-1">

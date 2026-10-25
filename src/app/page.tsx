@@ -147,10 +147,7 @@ export default async function HomePage({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Hero Content */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 animate-spin" />
-                <span>Certified Healthy Aviary & Pet Store</span>
-              </div>
+
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-white">
                 {heroTitle.split(' ').map((word, i) =>

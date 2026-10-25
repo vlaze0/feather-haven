@@ -18,7 +18,7 @@ export default function PolicyPage({ params }: { params: { type: string } }) {
 1. **Pre-Dispatch Vet Screening**: All live birds listed on Feather Haven are hand-raised or nursery-incubated and undergo a 14-day health isolation and de-worming program prior to sale.
 2. **Double-Purchase Prevention**: Because individual birds are unique inventory items, our database locks bird availability atomically. Once an order is confirmed, the bird's status changes to 'SOLD' instantly.
 3. **Transit & Local Delivery**: Live animal delivery is conducted strictly in ventilated, temperature-regulated travel carriers. Deliveries are scheduled during mild weather hours (early morning or late afternoon).
-4. **Store Pickup**: Customers choosing Store Pickup at our MG Road Bengaluru aviary can inspect their bird in person, receive finger-taming tips, and collect starter millet sprays.`;
+4. **Store Pickup**: Customers choosing Store Pickup at our Jamalpur, Aligarh store can inspect their bird in person, receive finger-taming tips, and collect starter millet sprays.`;
   } else if (type === 'shipping-policy') {
     title = 'Shipping & Delivery Terms';
     icon = Truck;

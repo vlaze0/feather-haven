@@ -28,7 +28,7 @@ export default function AdminContentPage() {
           );
           setWhatsappNumber(data.settings.whatsapp_number || '919876543210');
           setStoreAddress(
-            data.settings.store_address || 'Shop #14, Royal Palm Arcade, MG Road, Bengaluru, Karnataka 560001'
+            data.settings.store_address || 'Jamalpur, Aligarh 202002'
           );
         }
       });

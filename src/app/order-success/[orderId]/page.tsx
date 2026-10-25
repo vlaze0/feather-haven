@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { CheckCircle2, MessageCircle, ArrowRight, PackageCheck, Truck, Store } from 'lucide-react';
+import { CheckCircle2, MessageCircle, ArrowRight, Truck, Store, Clock } from 'lucide-react';
 import { formatCurrency, generateWhatsAppLink } from '@/lib/utils';
 
 export const revalidate = 0;
@@ -21,25 +21,57 @@ export default async function OrderSuccessPage({ params }: { params: { orderId: 
     notFound();
   }
 
-  const whatsappMsg = `Hello Feather Haven, I placed Order #${order.orderNumber}. I would like to track my delivery status.`;
+  const whatsappMsg = `Hello Feather Haven, I placed Order #${order.orderNumber} and have completed UPI payment. Please confirm my order.`;
   const whatsappLink = generateWhatsAppLink('919876543210', whatsappMsg);
+
+  const isUPI = order.paymentMethod === 'UPI';
+  const isPaid = order.paymentStatus === 'PAID';
 
   return (
     <div className="bg-slate-50 min-h-screen py-16 flex items-center justify-center">
       <div className="max-w-2xl w-full mx-4 bg-white p-8 sm:p-10 rounded-3xl border border-slate-100 shadow-xl space-y-8 text-center sm:text-left">
         {/* Success Icon Header */}
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-10 h-10" />
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${
+            isPaid ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+          }`}>
+            {isPaid ? (
+              <CheckCircle2 className="w-10 h-10" />
+            ) : (
+              <Clock className="w-10 h-10" />
+            )}
           </div>
           <div>
-            <span className="text-xs font-mono uppercase text-emerald-600 font-extrabold">Order Confirmed!</span>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Thank You for Your Order</h1>
+            {isPaid ? (
+              <>
+                <span className="text-xs font-mono uppercase text-emerald-600 font-extrabold">Payment Received!</span>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Order Confirmed 🎉</h1>
+              </>
+            ) : (
+              <>
+                <span className="text-xs font-mono uppercase text-amber-600 font-extrabold">Order Placed!</span>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Thank You for Your Order</h1>
+              </>
+            )}
             <p className="text-xs text-slate-500 mt-1">
               Order Number: <strong className="text-slate-900 font-mono">{order.orderNumber}</strong>
             </p>
           </div>
         </div>
+
+        {/* Payment status banner */}
+        {isUPI && isPaid && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+            <p className="text-sm font-bold text-emerald-800">✅ UPI Payment Confirmed</p>
+            <p className="text-xs text-emerald-700 mt-0.5">We have received your payment. Your order is now being prepared.</p>
+          </div>
+        )}
+        {!isUPI && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+            <p className="text-sm font-bold text-amber-800">💵 Cash on Delivery</p>
+            <p className="text-xs text-amber-700 mt-0.5">Please keep the exact amount ready at the time of delivery.</p>
+          </div>
+        )}
 
         {/* Order Details Receipt Box */}
         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4 text-xs">
@@ -65,6 +97,17 @@ export default async function OrderSuccessPage({ params }: { params: { orderId: 
             </span>
           </div>
 
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <span className="font-bold text-slate-700">Payment</span>
+            <span className={`font-extrabold px-2 py-0.5 rounded-full text-[10px] uppercase ${
+              isPaid
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              {order.paymentMethod} — {isPaid ? 'Paid' : 'Pay on Delivery'}
+            </span>
+          </div>
+
           <div className="border-b border-slate-200 pb-3">
             <span className="font-bold text-slate-700 block mb-1">Purchased Items:</span>
             <div className="space-y-1 pl-2">
@@ -78,7 +121,7 @@ export default async function OrderSuccessPage({ params }: { params: { orderId: 
           </div>
 
           <div className="flex items-center justify-between pt-1 text-sm font-black">
-            <span>Total Paid</span>
+            <span>{isPaid ? 'Total Paid' : 'Total Payable'}</span>
             <span className="text-emerald-600 text-base">{formatCurrency(order.totalAmount)}</span>
           </div>
         </div>

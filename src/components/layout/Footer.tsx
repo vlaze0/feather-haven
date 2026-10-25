@@ -160,7 +160,7 @@ export default function Footer() {
           <ul className="space-y-3 text-xs text-slate-400">
             <li className="flex items-start space-x-2">
               <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>Royal Palm Arcade, MG Road, Bengaluru, KA 560001</span>
+              <span>Jamalpur, Aligarh 202002</span>
             </li>
             <li className="flex items-center space-x-2">
               <Phone className="w-4 h-4 text-emerald-400 shrink-0" />

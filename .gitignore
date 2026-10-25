@@ -25,6 +25,9 @@ yarn-error.log*
 # Environment variables
 .env
 .env*.local
+.env.supabase
+*.db
+*.db-journal
 
 # Vercel
 .vercel

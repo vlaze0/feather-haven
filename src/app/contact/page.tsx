@@ -50,7 +50,7 @@ export default function ContactPage() {
           <span className="text-xs font-mono uppercase text-emerald-400 font-bold">Store Inquiry & Support</span>
           <h1 className="text-3xl sm:text-4xl font-black text-white mt-1">Get in Touch with Feather Haven</h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl">
-            Have questions about bird availability, custom cages, or store pickup? Send us a message or visit our Bengaluru aviary!
+            Have questions about bird availability, custom cages, or store pickup? Send us a message or visit our Aligarh store!
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <span className="font-bold text-slate-900 block">Store Address</span>
-                    <span className="text-slate-500">Shop #14, Royal Palm Arcade, MG Road, Bengaluru, KA 560001</span>
+                    <span className="text-slate-500">Jamalpur, Aligarh 202002</span>
                   </div>
                 </div>
 

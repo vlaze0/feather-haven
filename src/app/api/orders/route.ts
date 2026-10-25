@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
           totalAmount,
           couponCode: couponCode || null,
           paymentMethod: paymentMethod || 'COD',
-          paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PAID',
+          paymentStatus: body.paymentStatus || (paymentMethod === 'COD' ? 'PENDING' : 'PENDING'),
           orderStatus: 'CONFIRMED',
           notes: notes || null,
           orderItems: {

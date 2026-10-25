@@ -8,6 +8,7 @@
   }
 
   body {
+    font-family: var(--font-sans);
     @apply bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white;
   }
 }
@@ -50,4 +51,33 @@
 
 .animate-float {
   animation: floatSlow 4s ease-in-out infinite;
+}
+
+/* Hide Netlify branding badge injected into deployed sites */
+[data-testid="netlify-badge"],
+.__netlify-badge,
+.netlify-badge,
+iframe[src*="netlify.com"],
+a[href*="www.netlify.com"][target="_blank"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* PWA / standalone mode — hide browser address bar artifacts */
+@media (display-mode: standalone) {
+  body {
+    /* Safe area insets for notched phones */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Safe area utilities for bottom nav */
+.safe-area-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top);
 }

@@ -1,0 +1,1 @@
+﻿const { PrismaClient } = require("@prisma/client"); const p = new PrismaClient(); p.siteSetting.upsert({ where: { key: "store_address" }, update: { value: "Jamalpur, Aligarh 202002" }, create: { key: "store_address", value: "Jamalpur, Aligarh 202002" } }).then(r => { console.log("Updated:", r.value); p.$disconnect(); }).catch(e => { console.error(e); p.$disconnect(); });
