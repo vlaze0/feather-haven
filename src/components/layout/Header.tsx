@@ -7,21 +7,14 @@ import {
   Bird,
   ShoppingBag,
   Heart,
-  User as UserIcon,
   Search,
   Menu,
   X,
-  ChevronDown,
-  LogOut,
-  PackageCheck,
-  Settings,
-  LayoutDashboard,
+  ShieldCheck,
   ArrowLeft,
 } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
 import { useAppMode } from '@/lib/use-app-mode';
-import { UserSession } from '@/types';
-import DashboardIcon from '@/components/ui/DashboardIcon';
 
 export default function Header() {
   const router = useRouter();
@@ -33,18 +26,6 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState<UserSession | null>(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  // Fetch session user
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.user) setUser(data.user);
-      })
-      .catch(() => {});
-  }, [pathname]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -69,14 +50,6 @@ export default function Header() {
     }
   };
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setUser(null);
-    setUserMenuOpen(false);
-    router.push('/');
-    router.refresh();
-  };
-
   // Get page title for app mode header
   const getPageTitle = () => {
     if (pathname === '/') return 'FeatherHaven';
@@ -85,12 +58,9 @@ export default function Header() {
     if (pathname.startsWith('/accessories') || pathname.startsWith('/cages')) return 'Accessories';
     if (pathname.startsWith('/cart')) return 'Cart';
     if (pathname.startsWith('/wishlist')) return 'Wishlist';
-    if (pathname.startsWith('/account')) return 'My Account';
-    if (pathname.startsWith('/admin')) return 'Dashboard';
+    if (pathname.startsWith('/owner') || pathname.startsWith('/admin')) return 'Owner Portal';
     if (pathname.startsWith('/about')) return 'About Us';
     if (pathname.startsWith('/contact')) return 'Contact';
-    if (pathname.startsWith('/login')) return 'Sign In';
-    if (pathname.startsWith('/register')) return 'Register';
     if (pathname.startsWith('/checkout')) return 'Checkout';
     return 'FeatherHaven';
   };
@@ -130,6 +100,7 @@ export default function Header() {
               <button
                 onClick={() => setSearchOpen(true)}
                 className="p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
+                title="Search"
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -137,6 +108,7 @@ export default function Header() {
               <Link
                 href="/cart"
                 className="relative p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
+                title="Cart"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {totalCartCount > 0 && (
@@ -146,60 +118,18 @@ export default function Header() {
                 )}
               </Link>
 
-              {user ? (
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
-                >
-                  <UserIcon className="w-5 h-5" />
-                </button>
-              ) : (
-                <Link href="/login" className="p-2 text-emerald-600 rounded-lg">
-                  <UserIcon className="w-5 h-5" />
-                </Link>
-              )}
+              <Link
+                href="/owner"
+                className="p-2 text-slate-600 hover:text-emerald-600 rounded-lg"
+                title="Owner Portal"
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </Link>
             </div>
           </div>
-
-          {/* User dropdown in app mode */}
-          {userMenuOpen && user && (
-            <div className="absolute right-4 top-14 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
-              <div className="px-4 py-2 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
-                <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-              </div>
-              <Link
-                href="/account"
-                onClick={() => setUserMenuOpen(false)}
-                className="flex items-center space-x-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50"
-              >
-                <PackageCheck className="w-4 h-4 text-slate-400" />
-                <span>My Orders</span>
-              </Link>
-              {user.role === 'ADMIN' && (
-                <Link
-                  href="/admin"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center space-x-2 px-4 py-2 text-xs text-emerald-700 hover:bg-emerald-50 font-bold"
-                >
-                  <LayoutDashboard className="w-4 h-4 text-emerald-600" />
-                  <span>Admin Dashboard</span>
-                </Link>
-              )}
-              <div className="border-t border-slate-100 mt-1 pt-1">
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left flex items-center space-x-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            </div>
-          )}
         </header>
 
-        {/* Search Modal (shared between modes) */}
+        {/* Search Modal */}
         {searchOpen && (
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-20 px-4">
             <div className="bg-white rounded-3xl w-full max-w-xl p-6 shadow-2xl animate-in zoom-in-95">
@@ -230,26 +160,6 @@ export default function Header() {
                   </button>
                 </div>
               </form>
-              <div className="mt-4">
-                <p className="text-xs text-slate-400 font-semibold mb-2">Popular:</p>
-                <div className="flex flex-wrap gap-2">
-                  {['Sky Blue Budgie', 'Lutino Parakeet', 'Bird Cage', 'Cuttlefish Bone', 'Lovebird'].map(
-                    (term) => (
-                      <button
-                        key={term}
-                        onClick={() => {
-                          setSearchQuery(term);
-                          router.push(`/birds?search=${encodeURIComponent(term)}`);
-                          setSearchOpen(false);
-                        }}
-                        className="bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 px-3 py-1 rounded-xl text-xs font-medium transition-colors"
-                      >
-                        {term}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -264,7 +174,7 @@ export default function Header() {
       <div className="bg-slate-900 text-white text-xs py-2.5 px-4 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-center">
           <div className="flex items-center space-x-2 text-emerald-400 font-medium truncate">
-            <span>🎉 Free Delivery on Orders Above ₹1,999! Use coupon <strong className="text-yellow-300">WELCOME10</strong> for 10% OFF</span>
+            <span>🎉 Free Delivery on Orders Above ₹1,999! Order directly via WhatsApp.</span>
           </div>
         </div>
       </div>
@@ -293,7 +203,7 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links — NO Customizer */}
+          {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center space-x-1">
             <Link
               href="/"
@@ -371,22 +281,6 @@ export default function Header() {
               <Search className="w-5 h-5" />
             </button>
 
-            {/* Dashboard Icon */}
-            <Link
-              href={user?.role === 'ADMIN' ? '/admin' : '/account'}
-              className={`p-2.5 rounded-xl transition-colors flex items-center space-x-1.5 ${
-                pathname.startsWith('/admin') || pathname.startsWith('/account')
-                  ? 'bg-emerald-50 text-emerald-700 font-bold'
-                  : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-100'
-              }`}
-              title={user?.role === 'ADMIN' ? 'Admin Dashboard' : 'My Dashboard'}
-            >
-              <DashboardIcon badge={user?.role === 'ADMIN'} />
-              <span className="hidden xl:inline text-xs font-semibold text-slate-800">
-                Dashboard
-              </span>
-            </Link>
-
             {/* Wishlist */}
             <Link
               href="/wishlist"
@@ -418,70 +312,19 @@ export default function Header() {
               )}
             </Link>
 
-            {/* Account Dropdown */}
-            <div className="relative">
-              {user ? (
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-1.5 bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-800 transition-colors shadow-sm"
-                >
-                  <UserIcon className="w-4 h-4 text-emerald-400" />
-                  <span className="max-w-[80px] truncate">{user.name.split(' ')[0]}</span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-                </button>
-              ) : (
-                <Link
-                  href="/login"
-                  className="flex items-center space-x-1.5 bg-emerald-600 text-white px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20"
-                >
-                  <UserIcon className="w-4 h-4" />
-                  <span>Login</span>
-                </Link>
-              )}
-
-              {/* Account Dropdown Menu */}
-              {userMenuOpen && user && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="px-4 py-2.5 border-b border-slate-100">
-                    <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                    <span className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                      {user.role}
-                    </span>
-                  </div>
-
-                  <Link
-                    href="/account"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center space-x-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-emerald-600 font-medium"
-                  >
-                    <PackageCheck className="w-4 h-4 text-slate-400" />
-                    <span>My Orders & Profile</span>
-                  </Link>
-
-                  {user.role === 'ADMIN' && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center space-x-2 px-4 py-2 text-xs text-emerald-700 hover:bg-emerald-50 font-bold"
-                    >
-                      <LayoutDashboard className="w-4 h-4 text-emerald-600" />
-                      <span>Admin Dashboard</span>
-                    </Link>
-                  )}
-
-                  <div className="border-t border-slate-100 mt-1 pt-1">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left flex items-center space-x-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-medium"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Owner Portal Link */}
+            <Link
+              href="/owner"
+              className={`p-2.5 rounded-xl transition-colors flex items-center space-x-1.5 ${
+                pathname.startsWith('/owner') || pathname.startsWith('/admin')
+                  ? 'bg-slate-900 text-white font-bold'
+                  : 'text-slate-700 hover:text-emerald-600 hover:bg-slate-100 bg-slate-50 border border-slate-200'
+              }`}
+              title="Owner Section"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold">Owner</span>
+            </Link>
 
             {/* Mobile Menu Button */}
             <button
@@ -494,7 +337,7 @@ export default function Header() {
         </div>
       </header>
 
-      {/* 3. Mobile Navigation Drawer — NO Customizer */}
+      {/* 3. Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex justify-end">
           <div className="w-4/5 max-w-sm bg-white h-full p-6 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right">
@@ -559,34 +402,14 @@ export default function Header() {
             </div>
 
             <div className="pt-6 border-t border-slate-100">
-              {user ? (
-                <div className="space-y-2">
-                  <Link
-                    href="/account"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full block text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
-                  >
-                    My Profile & Orders
-                  </Link>
-                  {user.role === 'ADMIN' && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="w-full block text-center py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold"
-                    >
-                      Admin Dashboard
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full block text-center py-3 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md"
-                >
-                  Sign In / Register
-                </Link>
-              )}
+              <Link
+                href="/owner"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center space-x-2 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold shadow-md hover:bg-slate-800 transition-colors"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Owner Section / Management</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -624,31 +447,9 @@ export default function Header() {
                 </button>
               </div>
             </form>
-
-            <div className="mt-4">
-              <p className="text-xs text-slate-400 font-semibold mb-2">Popular Search Terms:</p>
-              <div className="flex flex-wrap gap-2">
-                {['Sky Blue Budgie', 'Lutino Parakeet', 'Bird Cage', 'Golden Millet', 'Cuttlefish Bone', 'Lovebird'].map(
-                  (term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        setSearchQuery(term);
-                        router.push(`/birds?search=${encodeURIComponent(term)}`);
-                        setSearchOpen(false);
-                      }}
-                      className="bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 px-3 py-1 rounded-xl text-xs font-medium transition-colors"
-                    >
-                      {term}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
     </>
   );
 }
-

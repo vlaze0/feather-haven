@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bird, ShoppingBag, User, UtensilsCrossed } from 'lucide-react';
+import { Home, Bird, ShoppingBag, ShieldCheck, UtensilsCrossed } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
 import { useAppMode } from '@/lib/use-app-mode';
 
@@ -51,10 +51,10 @@ export default function MobileBottomNav() {
       isActive: pathname.startsWith('/cart'),
     },
     {
-      label: 'Account',
-      href: '/account',
-      icon: User,
-      isActive: pathname.startsWith('/account') || pathname.startsWith('/login'),
+      label: 'Owner',
+      href: '/owner',
+      icon: ShieldCheck,
+      isActive: pathname.startsWith('/owner') || pathname.startsWith('/admin'),
     },
   ];
 

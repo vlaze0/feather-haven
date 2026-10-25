@@ -39,12 +39,22 @@ export default function ProductDetailClient({
 
   const [activeImage, setActiveImage] = useState(imagesList[0]);
   const [quantity, setQuantity] = useState(1);
+  const [ownerPhone, setOwnerPhone] = useState('919876543210');
   const inWishlist = isInWishlist(product.id);
 
   const currentPrice = product.discountPrice ?? product.price;
 
-  const enquiryMsg = generateProductEnquiryMessage(product.name, currentPrice);
-  const whatsappLink = generateWhatsAppLink('919876543210', enquiryMsg);
+  React.useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.settings?.whatsapp_number) setOwnerPhone(data.settings.whatsapp_number);
+      })
+      .catch(() => {});
+  }, []);
+
+  const enquiryMessage = generateProductEnquiryMessage(product.name, currentPrice);
+  const whatsappLink = generateWhatsAppLink(ownerPhone, enquiryMessage);
 
   const handleBuyNow = () => {
     addToCartProduct(product, quantity);

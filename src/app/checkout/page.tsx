@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -15,17 +15,13 @@ import {
   Copy,
   ArrowLeft,
   AlertCircle,
+  MessageCircle,
+  Send,
 } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, generateWhatsAppLink, generateWhatsAppOrderScript } from '@/lib/utils';
 
-// ─── Your UPI details — update these ───────────────────────────────────────
-const UPI_ID = 'your-upi@upi'; // ← Replace with your actual UPI ID
-const UPI_NAME = 'Feather Haven'; // ← Your name / shop name
-const QR_IMAGE_PATH = '/images/upi-qr.png'; // ← QR code image you'll upload to public/images/
-
-// ─── Steps ──────────────────────────────────────────────────────────────────
-type Step = 'form' | 'upi-payment' | 'upi-confirm';
+type Step = 'form' | 'upi-payment';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -46,6 +42,12 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [utrNumber, setUtrNumber] = useState('');
+
+  // Settings from Owner Console
+  const [ownerPhone, setOwnerPhone] = useState('919876543210');
+  const [ownerUPI, setOwnerUPI] = useState('featherhaven@upi');
+  const [ownerUPIName, setOwnerUPIName] = useState('Feather Haven Aviary');
 
   // Form Fields
   const [customerName, setCustomerName] = useState('');
@@ -57,6 +59,20 @@ export default function CheckoutPage() {
   const [pincode, setPincode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
   const [notes, setNotes] = useState('');
+
+  // Fetch Owner Settings (WhatsApp number and UPI details)
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.settings) {
+          if (data.settings.whatsapp_number) setOwnerPhone(data.settings.whatsapp_number);
+          if (data.settings.owner_upi_id) setOwnerUPI(data.settings.owner_upi_id);
+          if (data.settings.owner_upi_name) setOwnerUPIName(data.settings.owner_upi_name);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (cart.length === 0) {
     return (
@@ -75,10 +91,11 @@ export default function CheckoutPage() {
     );
   }
 
-  // ─── Place order in DB ──────────────────────────────────────────────────
-  const placeOrder = async (payStatus: 'PENDING' | 'PAID') => {
+  // ─── Place order in DB and redirect to WhatsApp ──────────────────────────
+  const handlePlaceOrder = async (payStatus: 'PENDING' | 'PAID') => {
     setLoading(true);
     setError(null);
+
     try {
       const orderItems = cart.map((item) => ({
         type: item.type,
@@ -88,6 +105,10 @@ export default function CheckoutPage() {
         unitPrice: item.unitPrice,
         title: item.title,
       }));
+
+      const finalNotes = utrNumber.trim()
+        ? `${notes ? notes + ' | ' : ''}UPI UTR/Ref: ${utrNumber.trim()}`
+        : notes;
 
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -104,7 +125,7 @@ export default function CheckoutPage() {
           couponCode: coupon?.code,
           paymentMethod,
           paymentStatus: payStatus,
-          notes,
+          notes: finalNotes,
           items: orderItems,
         }),
       });
@@ -117,8 +138,35 @@ export default function CheckoutPage() {
         return;
       }
 
+      // Generate the WhatsApp order script
+      const script = generateWhatsAppOrderScript({
+        orderNumber: data.order.orderNumber,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        deliveryMethod,
+        address,
+        city,
+        pincode,
+        items: cart.map((i) => ({
+          title: i.title,
+          quantity: i.quantity,
+          price: i.unitPrice,
+        })),
+        subtotal,
+        deliveryCharge,
+        discountAmount,
+        totalAmount,
+        paymentMethod,
+        notes: finalNotes,
+      });
+
+      const whatsappUrl = generateWhatsAppLink(ownerPhone, script);
+
+      // Open WhatsApp in a new tab/app
+      window.open(whatsappUrl, '_blank');
+
       clearCart();
-      showToast('Order placed successfully! 🕊️');
+      showToast('Order created! Opening WhatsApp... 🕊️');
       router.push(`/order-success/${data.order.id}`);
     } catch {
       setError('An unexpected error occurred. Please try again.');
@@ -126,118 +174,117 @@ export default function CheckoutPage() {
     }
   };
 
-  // ─── Form submit ─────────────────────────────────────────────────────────
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (paymentMethod === 'UPI') {
-      // Go to UPI QR step — don't place order yet
       setStep('upi-payment');
     } else {
-      // COD — place order immediately
-      placeOrder('PENDING');
+      handlePlaceOrder('PENDING');
     }
   };
 
-  // ─── Copy UPI ID ─────────────────────────────────────────────────────────
   const handleCopyUPI = () => {
-    navigator.clipboard.writeText(UPI_ID).then(() => {
+    navigator.clipboard.writeText(ownerUPI).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
-  // ─── UPI Payment Screen ──────────────────────────────────────────────────
+  // Construct dynamic UPI payment URI
+  const upiUri = `upi://pay?pa=${ownerUPI}&pn=${encodeURIComponent(
+    ownerUPIName
+  )}&am=${totalAmount}&cu=INR&tn=FeatherHaven-Order`;
+
+  const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+    upiUri
+  )}`;
+
+  // ─── STEP 2: UPI PAYMENT & QR CODE SCREEN ────────────────────────────────
   if (step === 'upi-payment') {
     return (
       <div className="bg-slate-50 min-h-screen py-10">
         <div className="max-w-md mx-auto px-4 space-y-6">
-          {/* Back */}
           <button
             onClick={() => setStep('form')}
-            className="flex items-center space-x-1 text-sm text-slate-600 hover:text-slate-900"
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Details</span>
           </button>
 
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-5 text-center">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm space-y-6 text-center">
             <div>
-              <span className="text-xs font-mono uppercase text-emerald-600 font-extrabold">Step 2 of 2</span>
-              <h2 className="text-xl font-black text-slate-900 mt-1">Complete UPI Payment</h2>
+              <span className="text-[11px] font-mono uppercase text-emerald-600 font-extrabold tracking-wider">
+                Step 2 of 2: Scan & Pay
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 mt-1">Complete UPI Payment</h2>
               <p className="text-xs text-slate-500 mt-1">
-                Pay <span className="font-bold text-emerald-600">{formatCurrency(totalAmount)}</span> using any UPI app
+                Scan using any UPI app (GPay, PhonePe, Paytm, CRED, BHIM)
               </p>
             </div>
 
-            {/* Amount box */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-              <p className="text-xs text-slate-500 mb-1">Total Amount to Pay</p>
+            {/* Total Amount Box */}
+            <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4">
+              <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Amount to Pay</p>
               <p className="text-3xl font-black text-emerald-600">{formatCurrency(totalAmount)}</p>
             </div>
 
-            {/* QR Code */}
+            {/* Dynamic QR Code */}
             <div className="flex flex-col items-center space-y-3">
-              <div className="relative w-48 h-48 border-4 border-emerald-600 rounded-2xl overflow-hidden bg-white">
-                <Image
-                  src={QR_IMAGE_PATH}
-                  alt="UPI QR Code"
-                  fill
-                  className="object-contain p-1"
-                  onError={(e) => {
-                    // Show placeholder if QR not uploaded yet
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
+              <div className="p-3 bg-white border-2 border-slate-200 rounded-2xl shadow-sm">
+                <img
+                  src={dynamicQrUrl}
+                  alt="UPI Payment QR Code"
+                  width={200}
+                  height={200}
+                  className="rounded-lg"
                 />
-                {/* Fallback placeholder */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 text-xs font-medium p-3">
-                  <div className="w-12 h-12 bg-slate-200 rounded-lg mb-2 flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <span className="text-center text-[10px] leading-tight text-slate-400">
-                    QR Code will appear here once uploaded
-                  </span>
-                </div>
               </div>
-              <p className="text-xs text-slate-500">Scan with GPay, PhonePe, Paytm or any UPI app</p>
+              <p className="text-xs text-slate-500 font-medium">
+                QR code includes store UPI & exact payable amount
+              </p>
             </div>
 
-            {/* Or pay via UPI ID */}
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs text-slate-500 mb-2">Or pay directly to UPI ID</p>
-              <div className="flex items-center justify-center space-x-2 bg-slate-100 rounded-xl px-4 py-2.5">
-                <span className="font-mono font-bold text-slate-900 text-sm">{UPI_ID}</span>
+            {/* UPI ID Copy Section */}
+            <div className="border-t border-slate-100 pt-4 space-y-2">
+              <p className="text-xs text-slate-500">Or transfer directly to UPI ID:</p>
+              <div className="flex items-center justify-between bg-slate-100 rounded-xl px-4 py-2.5">
+                <span className="font-mono font-bold text-slate-900 text-xs truncate mr-2">{ownerUPI}</span>
                 <button
+                  type="button"
                   onClick={handleCopyUPI}
-                  className="text-emerald-600 hover:text-emerald-700 transition-colors"
-                  title="Copy UPI ID"
+                  className="text-emerald-600 hover:text-emerald-700 font-bold text-xs flex items-center space-x-1 shrink-0"
                 >
-                  {copied ? (
-                    <CheckCircle2 className="w-4 h-4" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
+                  {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
-              {copied && (
-                <p className="text-xs text-emerald-600 font-medium mt-1">✓ Copied to clipboard!</p>
-              )}
             </div>
 
-            {/* UPI deep link — opens GPay/PhonePe directly */}
+            {/* Direct UPI App Deep Link */}
             <a
-              href={`upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${totalAmount}&cu=INR&tn=FeatherHaven-Order`}
-              className="block w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all"
+              href={upiUri}
+              className="block w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs py-3.5 rounded-xl shadow-md transition-all"
             >
-              Open UPI App to Pay
+              📱 Tap to Open in UPI App (GPay / PhonePe)
             </a>
 
-            {/* Warning */}
-            <div className="flex items-start space-x-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-800 font-medium">
-                Only tap "I Have Paid" after your payment is successfully completed. Orders without payment will be cancelled.
+            {/* Optional UTR / Reference Number */}
+            <div className="text-left space-y-1 pt-2">
+              <label className="text-xs font-bold text-slate-700 block">
+                UPI Reference / UTR Number (Optional)
+              </label>
+              <input
+                type="text"
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value)}
+                placeholder="e.g. 423871928371 (12 digits)"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+              />
+              <p className="text-[10px] text-slate-400">
+                Helps the store owner instantly verify your payment.
               </p>
             </div>
 
@@ -247,18 +294,18 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Confirm payment button */}
+            {/* Confirm & Send on WhatsApp */}
             <button
-              onClick={() => placeOrder('PAID')}
+              onClick={() => handlePlaceOrder('PAID')}
               disabled={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center space-x-2 disabled:bg-slate-300"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:bg-slate-300"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{loading ? 'Confirming...' : 'I Have Paid — Confirm Order'}</span>
+              <MessageCircle className="w-5 h-5" />
+              <span>{loading ? 'Creating Order...' : 'I Have Paid — Send on WhatsApp 💬'}</span>
             </button>
 
             <p className="text-[10px] text-slate-400">
-              Paid to: <strong>{UPI_NAME}</strong> ({UPI_ID})
+              Paid to: <strong>{ownerUPIName}</strong>
             </p>
           </div>
         </div>
@@ -266,13 +313,15 @@ export default function CheckoutPage() {
     );
   }
 
-  // ─── Main Checkout Form ──────────────────────────────────────────────────
+  // ─── STEP 1: CUSTOMER DETAILS FORM ────────────────────────────────────────
   return (
     <div className="bg-slate-50 min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-900">Checkout</h1>
-          <p className="text-xs text-slate-500 mt-1">Complete your customer details and payment preference.</p>
+          <h1 className="text-3xl font-black text-slate-900">Direct Checkout</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            No registration needed. Enter details and your order script will be sent directly to the store on WhatsApp.
+          </p>
         </div>
 
         <form onSubmit={handleSubmitForm} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -318,30 +367,30 @@ export default function CheckoutPage() {
 
             {/* 2. Customer Contact & Address Info */}
             <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-              <h3 className="font-extrabold text-slate-900 text-base">2. Contact & Address Info</h3>
+              <h3 className="font-extrabold text-slate-900 text-base">2. Contact & Delivery Info</h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Your Full Name *</label>
                   <input
                     type="text"
                     required
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
+                    placeholder="e.g. Md Areeb"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Phone *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Your WhatsApp Number *</label>
                   <input
                     type="tel"
                     required
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="e.g. 9876543210"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
                 </div>
               </div>
@@ -353,7 +402,7 @@ export default function CheckoutPage() {
                   required
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="rahul@example.com"
+                  placeholder="areeb@example.com"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -361,13 +410,13 @@ export default function CheckoutPage() {
               {deliveryMethod === 'HOME_DELIVERY' && (
                 <>
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Street Address *</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Delivery Address *</label>
                     <textarea
                       required
                       rows={2}
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="House/Flat No., Building, Street Name"
+                      placeholder="House/Flat No., Landmark, Street Name"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -411,12 +460,12 @@ export default function CheckoutPage() {
               )}
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Order Notes (Optional)</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Special Notes for Owner (Optional)</label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Special instructions for bird handling or delivery time..."
+                  placeholder="e.g. Please call before delivery, bird handling preference..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -424,7 +473,7 @@ export default function CheckoutPage() {
 
             {/* 3. Payment Method */}
             <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-              <h3 className="font-extrabold text-slate-900 text-base">3. Payment Option</h3>
+              <h3 className="font-extrabold text-slate-900 text-base">3. Payment Preference</h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold">
                 <button
@@ -439,7 +488,7 @@ export default function CheckoutPage() {
                   <Banknote className="w-5 h-5 text-emerald-600 shrink-0" />
                   <div>
                     <span className="block font-extrabold">Cash on Delivery (COD)</span>
-                    <span className="text-[10px] text-slate-500 font-normal">Pay when your order arrives</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Pay cash when pet/product arrives</span>
                   </div>
                 </button>
 
@@ -455,25 +504,16 @@ export default function CheckoutPage() {
                   <CreditCard className="w-5 h-5 text-emerald-600 shrink-0" />
                   <div>
                     <span className="block font-extrabold">UPI / QR Code</span>
-                    <span className="text-[10px] text-slate-500 font-normal">GPay, PhonePe, Paytm</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Scan QR via GPay, PhonePe, Paytm</span>
                   </div>
                 </button>
               </div>
-
-              {paymentMethod === 'UPI' && (
-                <div className="flex items-start space-x-2 bg-blue-50 border border-blue-200 rounded-xl p-3">
-                  <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-blue-800 font-medium">
-                    After clicking "Proceed to Payment", you'll see our QR code. Scan & pay, then confirm your payment to complete the order.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Right Summary Column */}
           <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm h-fit space-y-6">
-            <h3 className="font-extrabold text-slate-900 text-lg">Items in Order ({cart.length})</h3>
+            <h3 className="font-extrabold text-slate-900 text-lg">Selected Products ({cart.length})</h3>
 
             <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-2">
               {cart.map((item) => (
@@ -519,21 +559,21 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm py-4 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:bg-slate-300"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:bg-slate-300"
             >
-              <Lock className="w-4 h-4" />
+              <MessageCircle className="w-5 h-5" />
               <span>
                 {loading
                   ? 'Processing...'
                   : paymentMethod === 'UPI'
-                  ? 'Proceed to Payment →'
-                  : 'Confirm & Place Order'}
+                  ? 'Proceed to UPI Payment & QR Code →'
+                  : 'Place Order & Send on WhatsApp 💬'}
               </span>
             </button>
 
             <div className="text-center text-[11px] text-slate-400 font-medium flex items-center justify-center space-x-1">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Encrypted SSL & Atomic Inventory Protection</span>
+              <span>Direct WhatsApp Order to Store Owner</span>
             </div>
           </div>
         </form>

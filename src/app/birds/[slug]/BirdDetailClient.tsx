@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -42,8 +42,19 @@ export default function BirdDetailClient({
   const [activeImage, setActiveImage] = useState(imagesList[0]);
   const inWishlist = isInWishlist(bird.id);
 
+  const [ownerPhone, setOwnerPhone] = useState('919876543210');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.settings?.whatsapp_number) setOwnerPhone(data.settings.whatsapp_number);
+      })
+      .catch(() => {});
+  }, []);
+
   const enquiryMessage = generateBirdEnquiryMessage(bird.name, bird.birdCode, bird.price);
-  const whatsappLink = generateWhatsAppLink('919876543210', enquiryMessage);
+  const whatsappLink = generateWhatsAppLink(ownerPhone, enquiryMessage);
 
   const handleGenderConfirm = (selectedBird: BirdItem, gender: 'Male' | 'Female' | 'Pair') => {
     addToCartBird(selectedBird, gender);

@@ -1,15 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { generateWhatsAppLink } from '@/lib/utils';
-
 import { useAppMode } from '@/lib/use-app-mode';
 
 export default function WhatsAppButton() {
   const { isApp } = useAppMode();
+  const [phone, setPhone] = useState('919876543210');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.settings?.whatsapp_number) {
+          setPhone(data.settings.whatsapp_number);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const whatsappLink = generateWhatsAppLink(
-    '919876543210',
+    phone,
     'Hello Feather Haven, I am browsing your online bird store and need assistance.'
   );
 
