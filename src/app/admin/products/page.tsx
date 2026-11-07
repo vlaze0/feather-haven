@@ -291,11 +291,14 @@ export default function AdminProductsPage() {
               </div>
 
               <div>
-                <label className="text-slate-400 font-bold block mb-1">Image URL</label>
+                <label className="text-slate-400 font-bold block mb-1">
+                  Image Path / URL <span className="text-[10px] text-slate-500 font-normal">(Optional)</span>
+                </label>
                 <input
-                  type="url"
+                  type="text"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="e.g. /images/... or https://..."
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white font-mono text-[11px]"
                 />
               </div>

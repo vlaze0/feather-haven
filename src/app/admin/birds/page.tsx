@@ -93,6 +93,25 @@ export default function AdminBirdsPage() {
 
   const handleSaveBird = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Preserve existing images if image URL is empty
+    let finalImages: string[] = [];
+    if (imageUrl.trim()) {
+      finalImages = [imageUrl.trim()];
+    } else if (editingBird) {
+      if (Array.isArray(editingBird.images)) {
+        finalImages = editingBird.images;
+      } else if (typeof editingBird.images === 'string') {
+        try {
+          const parsed = JSON.parse(editingBird.images);
+          if (Array.isArray(parsed)) finalImages = parsed;
+          else finalImages = [editingBird.images];
+        } catch {
+          finalImages = [editingBird.images];
+        }
+      }
+    }
+
     const payload = {
       birdCode,
       name,
@@ -108,7 +127,7 @@ export default function AdminBirdsPage() {
       dietRecommendation,
       temperament,
       description,
-      images: [imageUrl],
+      images: finalImages,
     };
 
     if (editingBird) {
@@ -369,12 +388,14 @@ export default function AdminBirdsPage() {
               </div>
 
               <div>
-                <label className="text-slate-400 font-bold block mb-1">Image URL</label>
+                <label className="text-slate-400 font-bold block mb-1">
+                  Image Path / URL <span className="text-[10px] text-slate-500 font-normal">(Optional — leave unchanged to keep current image)</span>
+                </label>
                 <input
-                  type="url"
+                  type="text"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="e.g. /images/birds/... or https://..."
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white font-mono text-[11px]"
                 />
               </div>
