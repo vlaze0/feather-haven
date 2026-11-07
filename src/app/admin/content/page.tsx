@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sliders, Save, Check, MessageCircle, CreditCard, ShieldCheck } from 'lucide-react';
+import { Sliders, Save, Check, MessageCircle, CreditCard, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
 
 export default function AdminContentPage() {
   const [heroTitle, setHeroTitle] = useState('');
@@ -15,6 +15,14 @@ export default function AdminContentPage() {
   const [enableUPI, setEnableUPI] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Owner Portal PIN state
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinSuccess, setPinSuccess] = useState<string | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -64,6 +72,48 @@ export default function AdminContentPage() {
     setLoading(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleUpdatePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(null);
+    setPinSuccess(null);
+
+    if (newPin.trim().length < 4) {
+      setPinError('New PIN must be at least 4 characters long.');
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      setPinError('New PIN and Confirm PIN do not match.');
+      return;
+    }
+
+    setPinLoading(true);
+    try {
+      const res = await fetch('/api/owner/change-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPin: currentPin.trim(),
+          newPin: newPin.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setPinError(data.error || 'Failed to update PIN. Please verify your current PIN.');
+      } else {
+        setPinSuccess('Owner Portal PIN updated successfully! Remember to use your new PIN next time.');
+        setCurrentPin('');
+        setNewPin('');
+        setConfirmPin('');
+      }
+    } catch {
+      setPinError('Connection error while updating PIN. Please try again.');
+    } finally {
+      setPinLoading(false);
+    }
   };
 
   return (
@@ -226,6 +276,80 @@ export default function AdminContentPage() {
           <span>{loading ? 'Saving Settings...' : 'Save Owner Settings'}</span>
         </button>
       </form>
+
+      {/* 4. Security & Owner Portal PIN */}
+      <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 space-y-6 max-w-3xl text-xs">
+        <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm pb-2 border-b border-slate-800">
+          <KeyRound className="w-5 h-5" />
+          <span>Security: Owner Portal Access PIN</span>
+        </div>
+        <p className="text-slate-400">
+          Change the passcode required to access the Owner Portal (<code className="text-emerald-400 font-mono">/owner</code> and <code className="text-emerald-400 font-mono">/admin</code>). Default initial PIN is <code className="text-amber-400 font-bold">admin123</code>.
+        </p>
+
+        {pinSuccess && (
+          <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold rounded-xl flex items-center space-x-2">
+            <Check className="w-4 h-4 shrink-0" />
+            <span>{pinSuccess}</span>
+          </div>
+        )}
+
+        {pinError && (
+          <div className="p-3 bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold rounded-xl flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{pinError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleUpdatePin} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-slate-300 font-bold block mb-1">Current PIN *</label>
+              <input
+                type="password"
+                required
+                value={currentPin}
+                onChange={(e) => setCurrentPin(e.target.value)}
+                placeholder="Current PIN"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-slate-300 font-bold block mb-1">New PIN *</label>
+              <input
+                type="password"
+                required
+                minLength={4}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                placeholder="Min 4 characters"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-slate-300 font-bold block mb-1">Confirm New PIN *</label>
+              <input
+                type="password"
+                required
+                minLength={4}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value)}
+                placeholder="Repeat new PIN"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white font-mono"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={pinLoading}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-6 py-3.5 rounded-xl shadow-lg flex items-center space-x-2 transition-all disabled:opacity-50"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>{pinLoading ? 'Updating PIN...' : 'Update Owner PIN'}</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
