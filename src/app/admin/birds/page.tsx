@@ -136,6 +136,26 @@ export default function AdminBirdsPage() {
     }
   };
 
+  const handleQuickStatusChange = async (birdId: string, newStatus: 'AVAILABLE' | 'SOLD' | 'RESERVED') => {
+    // Optimistically update local state immediately
+    setBirds((prev) =>
+      prev.map((b) => (b.id === birdId ? { ...b, status: newStatus } : b))
+    );
+
+    try {
+      const res = await fetch(`/api/birds/${birdId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        fetchBirds();
+      }
+    } catch {
+      fetchBirds();
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Top Bar */}
@@ -192,17 +212,27 @@ export default function AdminBirdsPage() {
                   </td>
                   <td className="p-4 font-black text-white text-sm">{formatCurrency(b.price)}</td>
                   <td className="p-4">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                    <select
+                      value={b.status}
+                      onChange={(e) => handleQuickStatusChange(b.id, e.target.value as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer focus:outline-none transition-all ${
                         b.status === 'AVAILABLE'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
                           : b.status === 'SOLD'
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 hover:bg-rose-500/30'
+                          : 'bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30'
                       }`}
                     >
-                      {b.status}
-                    </span>
+                      <option value="AVAILABLE" className="bg-slate-900 text-emerald-400">
+                        ✅ Available
+                      </option>
+                      <option value="SOLD" className="bg-slate-900 text-rose-400">
+                        🚫 Sold Out
+                      </option>
+                      <option value="RESERVED" className="bg-slate-900 text-amber-400">
+                        ⏳ Reserved
+                      </option>
+                    </select>
                   </td>
                   <td className="p-4 text-slate-400">
                     {b.gender} • {b.age}

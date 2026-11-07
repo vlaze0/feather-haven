@@ -46,15 +46,12 @@ export async function POST(req: NextRequest) {
             throw new Error(`Bird with ID ${item.birdId} was not found.`);
           }
 
-          if (bird.status !== 'AVAILABLE') {
-            throw new Error(`Sorry, ${bird.name} (${bird.birdCode}) has already been ${bird.status.toLowerCase()}!`);
+          if (bird.status === 'SOLD') {
+            throw new Error(`Sorry, ${bird.name} (${bird.birdCode}) has been marked as sold out by the store owner.`);
           }
 
-          // Mark bird as SOLD atomically
-          await tx.bird.update({
-            where: { id: bird.id },
-            data: { status: 'SOLD' },
-          });
+          // Note: We do NOT automatically mark the bird as SOLD on checkout.
+          // The store owner manually controls the "Sold Out" status from the Owner Portal.
 
           // Check if bird was ordered as a pair (price is 2x)
           const isPair =
