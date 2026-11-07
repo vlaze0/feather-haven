@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Bird, Phone, Mail, MapPin, Heart, ShieldCheck, Truck, RefreshCw, MessageSquare } from 'lucide-react';
+import { Bird, Mail, MapPin, Heart, ShieldCheck, Truck, RefreshCw, MessageSquare } from 'lucide-react';
 import { generateWhatsAppLink } from '@/lib/utils';
 import { useAppMode } from '@/lib/use-app-mode';
 
@@ -163,12 +163,8 @@ export default function Footer() {
               <span>Jamalpur, Aligarh 202002</span>
             </li>
             <li className="flex items-center space-x-2">
-              <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>+91 98765 43210</span>
-            </li>
-            <li className="flex items-center space-x-2">
               <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>hello@featherhaven.in</span>
+              <span>xnex82@gmail.com</span>
             </li>
           </ul>
         </div>
