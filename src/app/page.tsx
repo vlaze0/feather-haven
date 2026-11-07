@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-export const revalidate = 0; // Dynamic rendering for fresh database content
+export const revalidate = 30; // ISR cache for fast page loading (revalidates every 30s)
 
 export default async function HomePage({
   searchParams,

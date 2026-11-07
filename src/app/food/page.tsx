@@ -5,7 +5,7 @@ import ProductFilterBar from '@/components/products/ProductFilterBar';
 import Link from 'next/link';
 import { Search, Sparkles } from 'lucide-react';
 
-export const revalidate = 0;
+export const revalidate = 30; // ISR cache for fast page loading (revalidates every 30s)
 
 export default async function FoodPage({
   searchParams,
