@@ -111,8 +111,14 @@ export default function CartDrawer({
 
                     <div className="mt-2 flex items-center justify-between">
                       {item.type === 'bird' ? (
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
-                          Unique Bird (Qty: 1)
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                          item.selectedGender === 'Pair' || item.title.includes('Pair')
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {item.selectedGender === 'Pair' || item.title.includes('Pair')
+                            ? 'Breeding Pair (2 Birds)'
+                            : `${item.selectedGender || 'Single Bird'} (Qty: 1)`}
                         </span>
                       ) : (
                         <div className="flex items-center space-x-2 bg-white px-2 py-1 rounded-xl border border-slate-200">

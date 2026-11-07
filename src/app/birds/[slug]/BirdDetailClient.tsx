@@ -28,6 +28,7 @@ export default function BirdDetailClient({
   const router = useRouter();
   const { addToCartBird, toggleWishlist, isInWishlist } = useCart();
   const [isGenderModalOpen, setIsGenderModalOpen] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<'Male' | 'Female' | 'Pair'>('Male');
 
   let imagesList: string[] = ['/images/birds/normal_green_budgie.jpg'];
   if (Array.isArray(bird.images) && bird.images.length > 0) {
@@ -53,11 +54,26 @@ export default function BirdDetailClient({
       .catch(() => {});
   }, []);
 
-  const enquiryMessage = generateBirdEnquiryMessage(bird.name, bird.birdCode, bird.price);
+  const currentPrice = selectedOption === 'Pair' ? bird.price * 2 : bird.price;
+  const enquiryMessage = generateBirdEnquiryMessage(
+    `${bird.name} (${selectedOption === 'Pair' ? 'Breeding Pair' : selectedOption})`,
+    bird.birdCode,
+    currentPrice
+  );
   const whatsappLink = generateWhatsAppLink(ownerPhone, enquiryMessage);
 
   const handleGenderConfirm = (selectedBird: BirdItem, gender: 'Male' | 'Female' | 'Pair') => {
+    setSelectedOption(gender);
     addToCartBird(selectedBird, gender);
+  };
+
+  const handleBuyNow = () => {
+    addToCartBird(bird, selectedOption);
+    router.push('/checkout');
+  };
+
+  const handleAddToCart = () => {
+    addToCartBird(bird, selectedOption);
   };
 
   return (
@@ -135,15 +151,82 @@ export default function BirdDetailClient({
 
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{bird.name}</h1>
 
-              <div className="mt-4 flex items-baseline space-x-3">
-                <span className="text-3xl font-black text-slate-900">{formatCurrency(bird.price)}</span>
-                <span className="text-xs text-slate-500 font-medium">Taxes included</span>
+              <div className="mt-4 flex flex-wrap items-baseline gap-3">
+                <span className="text-3xl font-black text-slate-900">{formatCurrency(currentPrice)}</span>
+                {selectedOption === 'Pair' ? (
+                  <span className="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full">
+                    Breeding Pair (2 Birds: Male + Female)
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-500 font-medium">Single Bird (Taxes included)</span>
+                )}
               </div>
 
               <p className="text-xs text-slate-600 leading-relaxed mt-4">{bird.description}</p>
 
+              {/* Bird Gender / Pair Option Selector */}
+              <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                    Select Bird Option:
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {selectedOption === 'Pair' ? '2 Birds Included' : '1 Bird Included'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOption('Male')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                      selectedOption === 'Male'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300'
+                    }`}
+                  >
+                    <span className="text-base">♂️</span>
+                    <span className="font-extrabold text-xs">Male</span>
+                    <span className={`text-[10px] font-bold ${selectedOption === 'Male' ? 'text-emerald-100' : 'text-slate-900'}`}>
+                      {formatCurrency(bird.price)}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOption('Female')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                      selectedOption === 'Female'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300'
+                    }`}
+                  >
+                    <span className="text-base">♀️</span>
+                    <span className="font-extrabold text-xs">Female</span>
+                    <span className={`text-[10px] font-bold ${selectedOption === 'Female' ? 'text-emerald-100' : 'text-slate-900'}`}>
+                      {formatCurrency(bird.price)}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOption('Pair')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                      selectedOption === 'Pair'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300'
+                    }`}
+                  >
+                    <span className="text-base">👩‍❤️‍👨</span>
+                    <span className="font-extrabold text-xs">Breeding Pair</span>
+                    <span className={`text-[10px] font-bold ${selectedOption === 'Pair' ? 'text-emerald-100' : 'text-emerald-700'}`}>
+                      {formatCurrency(bird.price * 2)}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               {/* Key Specs Table */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Color</span>
                   <span className="text-xs font-bold text-slate-900">{bird.color}</span>
@@ -173,13 +256,13 @@ export default function BirdDetailClient({
                 {bird.status === 'AVAILABLE' ? (
                   <>
                     <button
-                      onClick={() => setIsGenderModalOpen(true)}
+                      onClick={handleBuyNow}
                       className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs py-3.5 px-6 rounded-2xl shadow-md transition-all text-center"
                     >
-                      Buy Now
+                      Buy Now • {formatCurrency(currentPrice)}
                     </button>
                     <button
-                      onClick={() => setIsGenderModalOpen(true)}
+                      onClick={handleAddToCart}
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3.5 px-6 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2"
                     >
                       <ShoppingBag className="w-4 h-4" />

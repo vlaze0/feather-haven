@@ -104,6 +104,7 @@ export default function CheckoutPage() {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         title: item.title,
+        selectedGender: item.selectedGender,
       }));
 
       const finalNotes = utrNumber.trim()
@@ -520,7 +521,11 @@ export default function CheckoutPage() {
                 <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
                   <div className="truncate max-w-[200px]">
                     <span className="font-bold text-slate-900 block truncate">{item.title}</span>
-                    <span className="text-slate-400">Qty: {item.quantity}</span>
+                    <span className="text-slate-400">
+                      {item.type === 'bird' && (item.selectedGender === 'Pair' || item.title.includes('Pair'))
+                        ? '1 Pair (2 Birds)'
+                        : `Qty: ${item.quantity}`}
+                    </span>
                   </div>
                   <span className="font-black text-slate-900">{formatCurrency(item.unitPrice * item.quantity)}</span>
                 </div>

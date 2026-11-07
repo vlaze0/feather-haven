@@ -67,22 +67,36 @@ export default function GenderSelectionModal({
               {bird.species}
             </span>
             <h3 className="font-extrabold text-slate-900 text-base line-clamp-1">{bird.name}</h3>
-            <span className="text-lg font-black text-slate-900 block mt-0.5">{formatCurrency(bird.price)}</span>
+            <div className="flex items-baseline space-x-1.5 mt-0.5">
+              <span className="text-lg font-black text-slate-900">
+                {formatCurrency(selectedGender === 'Pair' ? bird.price * 2 : bird.price)}
+              </span>
+              {selectedGender === 'Pair' && (
+                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                  Pair (2 Birds)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Gender Selection Title */}
         <div className="border-t border-slate-100 pt-4 space-y-3">
-          <label className="text-xs font-black uppercase text-slate-700 tracking-wider block">
-            Select Bird Gender / Pair Option:
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-black uppercase text-slate-700 tracking-wider block">
+              Select Bird Gender / Pair Option:
+            </label>
+            <span className="text-[11px] font-medium text-slate-500">
+              {selectedGender === 'Pair' ? 'Price is 2x for Pair' : 'Single Bird Price'}
+            </span>
+          </div>
 
           <div className="grid grid-cols-3 gap-2.5">
             {/* Option 1: Male */}
             <button
               type="button"
               onClick={() => setSelectedGender('Male')}
-              className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 ${
+              className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
                 selectedGender === 'Male'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white hover:border-emerald-300'
@@ -90,6 +104,9 @@ export default function GenderSelectionModal({
             >
               <span className="text-xl">♂️</span>
               <span className="font-extrabold text-xs">Male</span>
+              <span className={`text-[10px] font-bold ${selectedGender === 'Male' ? 'text-emerald-100' : 'text-slate-900'}`}>
+                {formatCurrency(bird.price)}
+              </span>
               <span className="text-[9px] opacity-80">Single Bird</span>
             </button>
 
@@ -97,7 +114,7 @@ export default function GenderSelectionModal({
             <button
               type="button"
               onClick={() => setSelectedGender('Female')}
-              className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 ${
+              className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
                 selectedGender === 'Female'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white hover:border-emerald-300'
@@ -105,6 +122,9 @@ export default function GenderSelectionModal({
             >
               <span className="text-xl">♀️</span>
               <span className="font-extrabold text-xs">Female</span>
+              <span className={`text-[10px] font-bold ${selectedGender === 'Female' ? 'text-emerald-100' : 'text-slate-900'}`}>
+                {formatCurrency(bird.price)}
+              </span>
               <span className="text-[9px] opacity-80">Single Bird</span>
             </button>
 
@@ -112,7 +132,7 @@ export default function GenderSelectionModal({
             <button
               type="button"
               onClick={() => setSelectedGender('Pair')}
-              className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 ${
+              className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
                 selectedGender === 'Pair'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white hover:border-emerald-300'
@@ -120,6 +140,9 @@ export default function GenderSelectionModal({
             >
               <span className="text-xl">👩‍❤️‍👨</span>
               <span className="font-extrabold text-xs">Breeding Pair</span>
+              <span className={`text-[10px] font-bold ${selectedGender === 'Pair' ? 'text-emerald-100' : 'text-emerald-700'}`}>
+                {formatCurrency(bird.price * 2)}
+              </span>
               <span className="text-[9px] opacity-80">Male + Female</span>
             </button>
           </div>
@@ -132,7 +155,9 @@ export default function GenderSelectionModal({
             className="w-full bg-slate-900 hover:bg-emerald-600 text-white font-extrabold text-xs py-4 px-6 rounded-2xl shadow-xl transition-all flex items-center justify-center space-x-2"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Confirm ({selectedGender}) & Add to Cart</span>
+            <span>
+              Confirm ({selectedGender === 'Pair' ? 'Breeding Pair' : selectedGender}) & Add to Cart • {formatCurrency(selectedGender === 'Pair' ? bird.price * 2 : bird.price)}
+            </span>
           </button>
         </div>
       </div>

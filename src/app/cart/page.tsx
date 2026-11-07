@@ -91,9 +91,22 @@ export default function CartPage() {
 
                   <div className="flex items-center space-x-6 w-full sm:w-auto justify-between sm:justify-end">
                     {item.type === 'bird' ? (
-                      <span className="text-xs bg-emerald-50 text-emerald-800 font-bold px-3 py-1 rounded-xl">
-                        Single Bird (Qty: 1)
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-xl ${
+                          item.selectedGender === 'Pair' || item.title.includes('Pair')
+                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                            : 'bg-emerald-50 text-emerald-800'
+                        }`}>
+                          {item.selectedGender === 'Pair' || item.title.includes('Pair')
+                            ? 'Breeding Pair (1 Pair / 2 Birds)'
+                            : `${item.selectedGender || 'Single Bird'} (Qty: 1)`}
+                        </span>
+                        {(item.selectedGender === 'Pair' || item.title.includes('Pair')) && item.bird?.price && (
+                          <span className="text-[10px] text-slate-500 font-medium mt-0.5">
+                            ₹{item.bird.price.toLocaleString('en-IN')} × 2 birds
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex items-center space-x-3 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
                         <button

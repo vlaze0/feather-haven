@@ -56,13 +56,24 @@ export async function POST(req: NextRequest) {
             data: { status: 'SOLD' },
           });
 
-          const itemTotal = bird.price;
+          // Check if bird was ordered as a pair (price is 2x)
+          const isPair =
+            item.selectedGender === 'Pair' ||
+            (item.title && (item.title.includes('Pair') || item.title.includes('Breeding Pair'))) ||
+            (item.unitPrice && item.unitPrice >= bird.price * 1.8);
+
+          const finalBirdPrice = isPair ? bird.price * 2 : bird.price;
+          const finalTitle = isPair
+            ? (item.title?.includes('Pair') ? item.title : `${bird.name} (Breeding Pair)`)
+            : (item.title || bird.name);
+
+          const itemTotal = finalBirdPrice;
           subtotal += itemTotal;
 
           orderItemsToCreate.push({
             birdId: bird.id,
-            title: bird.name,
-            price: bird.price,
+            title: finalTitle,
+            price: finalBirdPrice,
             quantity: 1,
           });
         } else if (item.type === 'product' && item.productId) {

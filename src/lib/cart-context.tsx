@@ -41,7 +41,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const savedCart = localStorage.getItem('fh_cart');
       const savedWishlist = localStorage.getItem('fh_wishlist');
       const savedCoupon = localStorage.getItem('fh_coupon');
-      if (savedCart) setCart(JSON.parse(savedCart));
+      if (savedCart) {
+        const parsed: CartLineItem[] = JSON.parse(savedCart);
+        // Self-heal: ensure pair bird items reflect 2x price if previously saved as single
+        const corrected = parsed.map((item) => {
+          if (item.type === 'bird') {
+            const isPair = item.selectedGender === 'Pair' || item.title?.includes('(Pair)') || item.id?.endsWith('-Pair');
+            if (isPair) {
+              const basePrice = item.bird?.price || item.unitPrice;
+              // If stored unitPrice equals single base price, correctly update to 2x pair price
+              const correctedPrice = item.bird?.price ? item.bird.price * 2 : (item.unitPrice < basePrice * 2 ? basePrice * 2 : item.unitPrice);
+              return {
+                ...item,
+                selectedGender: 'Pair' as const,
+                unitPrice: correctedPrice,
+                title: item.title.includes('Breeding Pair')
+                  ? item.title
+                  : item.title.replace(/\(Pair\)/i, '(Breeding Pair)'),
+              };
+            }
+          }
+          return item;
+        });
+        setCart(corrected);
+      }
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
       if (savedCoupon) setCoupon(JSON.parse(savedCoupon));
     } catch (e) {
@@ -98,20 +121,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0];
     } catch (e) {}
 
+    const isPair = selectedGender === 'Pair';
+    const effectiveUnitPrice = isPair ? bird.price * 2 : bird.price;
+    const genderLabel = isPair ? 'Breeding Pair' : selectedGender;
+
     const newItem: CartLineItem = {
       id: `bird-${bird.id}-${selectedGender}`,
       type: 'bird',
       birdId: bird.id,
       bird,
       quantity: 1,
-      unitPrice: bird.price,
-      title: `${bird.name} (${selectedGender})`,
+      unitPrice: effectiveUnitPrice,
+      title: `${bird.name} (${genderLabel})`,
       image: img,
       selectedGender,
     };
 
     setCart((prev) => [...prev, newItem]);
-    showToast(`Added ${bird.name} (${selectedGender}) to your cart! 🐦`);
+    showToast(
+      isPair
+        ? `Added ${bird.name} (Breeding Pair - 2 Birds) to your cart! 🐦👩‍❤️‍👨`
+        : `Added ${bird.name} (${selectedGender}) to your cart! 🐦`
+    );
   };
 
   const addToCartProduct = (product: ProductItem, quantity = 1) => {
