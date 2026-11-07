@@ -1,7 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Sliders, Save, Check, MessageCircle, CreditCard, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Sliders,
+  Save,
+  Check,
+  MessageCircle,
+  CreditCard,
+  ShieldCheck,
+  KeyRound,
+  AlertCircle,
+  QrCode,
+  Upload,
+  Trash2,
+  RefreshCw,
+} from 'lucide-react';
 
 export default function AdminContentPage() {
   const [heroTitle, setHeroTitle] = useState('');
@@ -10,11 +23,15 @@ export default function AdminContentPage() {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [ownerUPI, setOwnerUPI] = useState('');
   const [ownerUPIName, setOwnerUPIName] = useState('');
+  const [ownerQRCode, setOwnerQRCode] = useState('');
+  const [qrCodeMode, setQrCodeMode] = useState<'dynamic' | 'custom'>('dynamic');
   const [storeAddress, setStoreAddress] = useState('');
   const [enableCOD, setEnableCOD] = useState(true);
   const [enableUPI, setEnableUPI] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Owner Portal PIN state
   const [currentPin, setCurrentPin] = useState('');
@@ -41,12 +58,34 @@ export default function AdminContentPage() {
           setWhatsappNumber(data.settings.whatsapp_number || '919876543210');
           setOwnerUPI(data.settings.owner_upi_id || 'your-upi@upi');
           setOwnerUPIName(data.settings.owner_upi_name || 'Feather Haven Aviary');
+          setOwnerQRCode(data.settings.owner_qr_code || '');
+          setQrCodeMode(data.settings.qr_code_mode || (data.settings.owner_qr_code ? 'custom' : 'dynamic'));
           setStoreAddress(data.settings.store_address || 'Jamalpur, Aligarh 202002');
           setEnableCOD(data.settings.enable_cod !== 'false');
           setEnableUPI(data.settings.enable_upi !== 'false');
         }
       });
   }, []);
+
+  const handleQrFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image size should be less than 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setOwnerQRCode(result);
+        setQrCodeMode('custom');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +102,8 @@ export default function AdminContentPage() {
         whatsapp_number: whatsappNumber,
         owner_upi_id: ownerUPI,
         owner_upi_name: ownerUPIName,
+        owner_qr_code: ownerQRCode,
+        qr_code_mode: qrCodeMode,
         store_address: storeAddress,
         enable_cod: String(enableCOD),
         enable_upi: String(enableUPI),
@@ -212,6 +253,140 @@ export default function AdminContentPage() {
               />
               <span className="text-slate-300 font-semibold">Enable Cash on Delivery (COD)</span>
             </label>
+          </div>
+
+          {/* QR Code Customization & Upload Section */}
+          <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/80 space-y-4 mt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold">
+                <QrCode className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wider">UPI QR Code Settings</span>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                Customers scan this QR code at checkout to pay
+              </span>
+            </div>
+
+            {/* Mode Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setQrCodeMode('dynamic')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  qrCodeMode === 'dynamic'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 ring-1 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="font-bold text-xs text-white">Auto-Generated Dynamic QR</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Generates QR automatically from your UPI ID ({ownerUPI}) with the customer's exact order amount.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQrCodeMode('custom')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  qrCodeMode === 'custom'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 ring-1 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Upload className="w-4 h-4" />
+                  <span className="font-bold text-xs text-white">Custom Store QR Code Image</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Upload your own GPay, PhonePe, Paytm, or BharatPe shop standee QR code image.
+                </p>
+              </button>
+            </div>
+
+            {/* If Custom Mode: upload or input */}
+            {qrCodeMode === 'custom' && (
+              <div className="space-y-3 pt-2 border-t border-slate-700/60">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleQrFileUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow flex items-center space-x-2 transition-all cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload QR Code Image from Device</span>
+                  </button>
+
+                  <span className="text-slate-500 text-[11px] font-medium">Or paste an Image URL / Path:</span>
+                </div>
+
+                <input
+                  type="text"
+                  value={ownerQRCode}
+                  onChange={(e) => setOwnerQRCode(e.target.value)}
+                  placeholder="e.g. /images/qr.png or https://... (or click Upload above)"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono text-[11px]"
+                />
+              </div>
+            )}
+
+            {/* QR Code Live Preview */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+              <div className="p-2 bg-white rounded-xl shadow-sm shrink-0 border border-slate-300">
+                <img
+                  src={
+                    qrCodeMode === 'custom' && ownerQRCode.trim()
+                      ? ownerQRCode
+                      : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                          `upi://pay?pa=${ownerUPI}&pn=${encodeURIComponent(ownerUPIName)}&cu=INR`
+                        )}`
+                  }
+                  alt="Live QR Preview"
+                  className="w-28 h-28 object-contain rounded-lg"
+                />
+              </div>
+              <div className="space-y-1 text-center sm:text-left flex-1">
+                <div className="flex items-center space-x-2 justify-center sm:justify-start">
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                      qrCodeMode === 'custom' && ownerQRCode.trim()
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    }`}
+                  >
+                    {qrCodeMode === 'custom' && ownerQRCode.trim()
+                      ? 'Custom Store QR Active'
+                      : 'Auto-Generated QR Active'}
+                  </span>
+                  {ownerQRCode && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOwnerQRCode('');
+                        setQrCodeMode('dynamic');
+                      }}
+                      className="text-rose-400 hover:text-rose-300 text-[11px] flex items-center space-x-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove Custom QR</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-white font-bold text-xs mt-1">Live Customer QR Preview</p>
+                <p className="text-slate-400 text-[11px]">
+                  You can scan this QR code right now with your phone camera or payment app (Google Pay, PhonePe, Paytm) to test it before saving!
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

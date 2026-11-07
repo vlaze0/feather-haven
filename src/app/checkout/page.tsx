@@ -48,6 +48,8 @@ export default function CheckoutPage() {
   const [ownerPhone, setOwnerPhone] = useState('919876543210');
   const [ownerUPI, setOwnerUPI] = useState('featherhaven@upi');
   const [ownerUPIName, setOwnerUPIName] = useState('Feather Haven Aviary');
+  const [ownerQRCode, setOwnerQRCode] = useState('');
+  const [qrCodeMode, setQrCodeMode] = useState<'dynamic' | 'custom'>('dynamic');
 
   // Form Fields
   const [customerName, setCustomerName] = useState('');
@@ -69,6 +71,8 @@ export default function CheckoutPage() {
           if (data.settings.whatsapp_number) setOwnerPhone(data.settings.whatsapp_number);
           if (data.settings.owner_upi_id) setOwnerUPI(data.settings.owner_upi_id);
           if (data.settings.owner_upi_name) setOwnerUPIName(data.settings.owner_upi_name);
+          if (data.settings.owner_qr_code) setOwnerQRCode(data.settings.owner_qr_code);
+          if (data.settings.qr_code_mode) setQrCodeMode(data.settings.qr_code_mode);
         }
       })
       .catch(() => {});
@@ -232,11 +236,11 @@ export default function CheckoutPage() {
               <p className="text-3xl font-black text-emerald-600">{formatCurrency(totalAmount)}</p>
             </div>
 
-            {/* Dynamic QR Code */}
+            {/* Dynamic / Custom QR Code */}
             <div className="flex flex-col items-center space-y-3">
               <div className="p-3 bg-white border-2 border-slate-200 rounded-2xl shadow-sm">
                 <img
-                  src={dynamicQrUrl}
+                  src={qrCodeMode === 'custom' && ownerQRCode.trim() ? ownerQRCode : dynamicQrUrl}
                   alt="UPI Payment QR Code"
                   width={200}
                   height={200}
@@ -244,7 +248,9 @@ export default function CheckoutPage() {
                 />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                QR code includes store UPI & exact payable amount
+                {qrCodeMode === 'custom' && ownerQRCode.trim()
+                  ? 'Scan this store QR code to pay'
+                  : 'QR code includes store UPI & exact payable amount'}
               </p>
             </div>
 
