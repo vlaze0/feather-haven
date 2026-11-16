@@ -17,7 +17,7 @@ async function run() {
 
     try {
       const userCount = await prisma.user.count();
-      if (userCount === 0) {
+      if (userCount === 0 && process.env.NODE_ENV !== 'production') {
         console.log('🌱 Fresh deployment detected. Seeding initial birds, products, and owner account...');
         execSync('npx tsx prisma/seed.ts', {
           stdio: 'inherit',
